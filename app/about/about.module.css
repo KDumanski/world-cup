@@ -1,0 +1,18 @@
+.wrap { max-width: 760px; }
+.title { font-size: var(--fs-2xl); margin: 0.1em 0 0.4em; }
+.lead {
+  font-size: var(--fs-md);
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin-bottom: var(--sp-4);
+}
+.prose h2 {
+  font-size: var(--fs-lg);
+  margin-top: var(--sp-4);
+  margin-bottom: 0.4em;
+}
+.prose p, .prose li { color: var(--ink-soft); font-size: var(--fs-base); }
+.prose ul { padding-left: 1.2em; }
+.prose li { margin-bottom: 0.5em; }
+.prose strong { color: var(--ink); }
+.cta { margin-top: var(--sp-5); }

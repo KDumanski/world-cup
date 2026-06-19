@@ -1,0 +1,22 @@
+{
+  "name": "world-cup-2026-fan-guide",
+  "version": "1.0.0",
+  "private": true,
+  "description": "World Cup 2026 Fan Guide — a taste of home in all 16 host cities across the USA, Canada & Mexico",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "serve": "npx serve out"
+  },
+  "dependencies": {
+    "next": "15.5.19",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^9",
+    "eslint-config-next": "15.5.19"
+  }
+}

@@ -1,0 +1,132 @@
+/* ============================ HERO ============================ */
+.hero {
+  position: relative;
+  padding-block: clamp(4rem, 10vw, 8rem) var(--sp-6);
+  overflow: hidden;
+}
+.heroGlow {
+  position: absolute;
+  top: -30%;
+  left: 50%;
+  width: 120vw;
+  height: 90vh;
+  transform: translateX(-50%);
+  background:
+    radial-gradient(50% 50% at 30% 20%, rgba(47, 208, 127, 0.18), transparent 70%),
+    radial-gradient(45% 45% at 75% 30%, rgba(244, 196, 48, 0.14), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.heroInner { position: relative; z-index: 1; max-width: 980px; }
+
+.heroTitle {
+  font-size: var(--fs-3xl);
+  letter-spacing: -0.03em;
+  margin: 0.1em 0 0.4em;
+}
+.heroAccent {
+  background: linear-gradient(100deg, var(--pitch-bright), var(--gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.heroLead { font-size: clamp(1.1rem, 2.2vw, 1.35rem); }
+
+.heroCtas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+}
+
+.statStrip {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-3);
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+@media (min-width: 720px) {
+  .statStrip { grid-template-columns: repeat(4, 1fr); }
+}
+.stat { display: flex; flex-direction: column; gap: 0.2em; }
+.statN {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  line-height: 1;
+  background: linear-gradient(120deg, var(--ink), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.statLabel {
+  font-size: var(--fs-tiny);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-faint);
+  font-weight: 600;
+}
+
+/* ============================ Section headings ============================ */
+.h2 {
+  font-size: var(--fs-xl);
+  margin-bottom: 0.4em;
+}
+
+/* ============================ How it works ============================ */
+.steps { margin-top: var(--sp-5); }
+.step {
+  padding: var(--sp-4);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-elev);
+  position: relative;
+}
+.step h3 { font-size: var(--fs-md); margin-bottom: 0.3em; }
+.step p { color: var(--ink-soft); font-size: var(--fs-small); margin: 0; }
+.stepNum {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent);
+  opacity: 0.5;
+  display: block;
+  margin-bottom: 0.3em;
+}
+
+/* ============================ Country blocks ============================ */
+.countryBlock { margin-top: var(--sp-5); }
+.countryHead {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+}
+.countryFlag { font-size: 1.8rem; line-height: 1; }
+.countryName { font-size: var(--fs-lg); margin: 0; }
+.countryCount {
+  margin-left: auto;
+  font-size: var(--fs-tiny);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-faint);
+  font-weight: 700;
+}
+
+/* ============================ Closing CTA ============================ */
+.cta {
+  text-align: center;
+  padding: clamp(2.5rem, 6vw, 5rem) var(--sp-4);
+  border-radius: calc(var(--radius) * 1.5);
+  border: 1px solid var(--line-strong);
+  background:
+    radial-gradient(60% 80% at 50% 0%, rgba(47, 208, 127, 0.1), transparent 70%),
+    var(--bg-elev);
+}
+.ctaTitle { font-size: var(--fs-xl); margin-bottom: 0.4em; }
+.ctaLead { color: var(--ink-soft); margin-bottom: var(--sp-3); }
