@@ -79,6 +79,32 @@
   .catRow{display:flex;align-items:center;gap:.6em;font-size:13px;color:var(--soft);padding:.35em 0;cursor:pointer}
   .catRow i{width:12px;height:12px;border-radius:3px}
 
+  /* numbered filter funnel */
+  .panel.step h4{display:flex;align-items:center;gap:.5em}
+  .stepN{width:20px;height:20px;border-radius:6px;background:var(--pitch);color:#06130c;font-weight:800;font-size:11px;display:grid;place-items:center;flex:none}
+  .hintline{font-size:12px;color:var(--soft);margin-top:10px}
+  .segmented{display:flex;gap:6px}
+  .seg{flex:1;font:inherit;font-size:12px;font-weight:700;color:var(--soft);background:var(--elev2);border:1px solid var(--line);border-radius:8px;padding:.55em 0;cursor:pointer;transition:.18s var(--ease)}
+  .seg:hover{border-color:var(--line2)}
+  .seg.on{background:var(--pitch);color:#06130c;border-color:var(--pitch)}
+  /* typeahead */
+  .ta{position:relative}
+  .ta-box{display:flex;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:10px;padding:.55em .8em;background:var(--elev2)}
+  .ta-box .ta-ic{font-size:13px;opacity:.7}
+  .ta-box input{flex:1;background:none;border:none;outline:none;color:var(--ink);font:inherit;font-size:13px}
+  .ta-box input::placeholder{color:var(--faint)}
+  .ta-menu{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--elev2);border:1px solid var(--line2);border-radius:10px;overflow:hidden;z-index:5;display:none;box-shadow:0 16px 40px rgba(0,0,0,.5)}
+  .ta-menu.open{display:block}
+  .ta-opt{display:flex;align-items:center;gap:.6em;padding:.55em .8em;font-size:13px;color:var(--soft);cursor:pointer}
+  .ta-opt:hover,.ta-opt.act{background:rgba(47,208,127,.12);color:var(--ink)}
+  .ta-opt i{width:11px;height:11px;border-radius:3px;flex:none}
+  .ta-opt .ct{margin-left:auto;color:var(--faint);font-size:11px}
+  .ta-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .ta-tag{display:inline-flex;align-items:center;gap:.4em;font-size:12px;font-weight:600;padding:.3em .7em;border-radius:999px;background:var(--pitch);color:#06130c;cursor:pointer}
+  .ta-tag b{font-weight:800} .ta-tag .rm{opacity:.7}
+  .resultLine{font-size:13px;color:var(--soft);text-align:center;padding:8px;border:1px dashed var(--line2);border-radius:10px;background:rgba(47,208,127,.05)}
+  .resultLine b{color:var(--pitch)}
+
   .cityMap{position:relative;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);
     background:
       radial-gradient(90% 70% at 30% 20%, rgba(72,149,239,.10), transparent 60%),
@@ -191,43 +217,55 @@
 <!-- ===================== SCREEN 2 ===================== -->
 <section class="screen" id="s2">
   <div class="secLabel"><span class="n">2</span><div><div class="kick">The core screen</div><h2 style="font-size:26px">City map · filters · detail</h2></div></div>
-  <p class="muted" style="max-width:70ch">One city (e.g. <b>New York / NJ</b>). Left <b>sidebar</b> = filters. Center = <b>Mapbox</b> with category-colored pins. Click a pin → <b>detail card</b> with address, hours, the team’s fans it serves, and whether it’s <span style="color:var(--gold);font-weight:700">showing the match live</span>.</p>
+  <p class="muted" style="max-width:74ch">The sidebar is a simple <b>filter funnel</b>, top to bottom: <b>1)</b> pick a country, <b>2)</b> pick the nation/team whose fans you are, <b>3)</b> <b>type</b> the kind of place you want — “restaurant”, “bar”, “social club” (it autocompletes), <b>4)</b> optional toggles. The matching <b>pins drop on the map</b> on the right; click any pin for the detail card (address, hours, which match it’s showing). <span class="faint">↓ try typing in box 3 — it works.</span></p>
 
   <div class="cityGrid">
-    <!-- SIDEBAR -->
+    <!-- SIDEBAR — a top-to-bottom FILTER FUNNEL: country → nation → type → map -->
     <div class="sidebar">
-      <div class="panel">
-        <div class="search">🔍 Search a place or your country…</div>
+
+      <!-- STEP 1 — pick a country -->
+      <div class="panel step">
+        <h4><span class="stepN">1</span> Pick a country</h4>
+        <div class="segmented">
+          <button class="seg on">🇺🇸 USA</button>
+          <button class="seg">🇨🇦 Canada</button>
+          <button class="seg">🇲🇽 Mexico</button>
+        </div>
+        <div class="hintline">City: <b>New York / New Jersey</b> ▾</div>
       </div>
 
-      <div class="panel">
-        <h4>Filter by nation / team</h4>
+      <!-- STEP 2 — whose fans? (visiting nation / team) -->
+      <div class="panel step">
+        <h4><span class="stepN">2</span> Filter by nation / team</h4>
         <div class="chips">
           <span class="chip on">🇧🇷 Brazil</span>
           <span class="chip">🇰🇷 Korea</span>
           <span class="chip">🇲🇽 Mexico</span>
           <span class="chip">🇮🇹 Italy</span>
           <span class="chip">🇵🇹 Portugal</span>
-          <span class="chip">🇬🇭 Ghana</span>
-          <span class="chip faint">+ all 48</span>
+          <span class="chip faint">+ all 48 ▾</span>
         </div>
       </div>
 
-      <div class="panel">
-        <h4>Show me</h4>
+      <!-- STEP 3 — type the kind of place (TYPEAHEAD) -->
+      <div class="panel step">
+        <h4><span class="stepN">3</span> What kind of place?</h4>
+        <div class="ta">
+          <div class="ta-box"><span class="ta-ic">⌨️</span><input id="typeInput" type="text" placeholder="Type: restaurant, bar, social club…" autocomplete="off"/></div>
+          <div class="ta-menu" id="typeMenu"></div>
+          <div class="ta-tags" id="typeTags"></div>
+        </div>
+        <div class="hintline faint">Start typing — pick a type, or add a few.</div>
+      </div>
+
+      <!-- STEP 4 — quick toggles -->
+      <div class="panel step">
+        <h4><span class="stepN">4</span> Show me</h4>
         <div class="toggle on"><span>📺 Showing the match live</span><span class="sw"></span></div>
-        <div class="toggle on"><span>⭐ Big fan gathering spots</span><span class="sw"></span></div>
         <div class="toggle"><span>🕐 Open right now</span><span class="sw"></span></div>
       </div>
 
-      <div class="panel">
-        <h4>Category</h4>
-        <div class="catRow"><i style="background:var(--coral)"></i> Restaurants <span class="faint" style="margin-left:auto">12</span></div>
-        <div class="catRow"><i style="background:var(--gold)"></i> Bars / watch spots <span class="faint" style="margin-left:auto">8</span></div>
-        <div class="catRow"><i style="background:var(--violet)"></i> Cultural hubs <span class="faint" style="margin-left:auto">4</span></div>
-        <div class="catRow"><i style="background:var(--pitch)"></i> Neighborhoods <span class="faint" style="margin-left:auto">6</span></div>
-        <div class="catRow"><i style="background:var(--sky)"></i> Markets <span class="faint" style="margin-left:auto">3</span></div>
-      </div>
+      <div class="resultLine">↓ <b id="resultCount">7</b> places on the map →</div>
     </div>
 
     <!-- MAP -->
@@ -399,6 +437,68 @@
   document.querySelectorAll('#s2 .chip').forEach(function(c){c.onclick=function(){c.classList.toggle('on')}});
   document.querySelectorAll('#s2 .toggle').forEach(function(t){t.onclick=function(){t.classList.toggle('on')}});
   document.querySelector('#s2 .detail .x').onclick=function(){this.closest('.detail').style.display='none'};
+
+  // STEP 1 — segmented country control (demo)
+  document.querySelectorAll('#s2 .seg').forEach(function(s){s.onclick=function(){
+    document.querySelectorAll('#s2 .seg').forEach(function(x){x.classList.remove('on')});s.classList.add('on');
+  }});
+
+  // STEP 3 — working typeahead for place TYPE.
+  // Type a kind of place → suggestions appear → pick one → it becomes a tag
+  // and the map result count updates (in the real app this repaints the pins).
+  var TYPES=[
+    {label:'Restaurant',color:'var(--coral)',n:12},
+    {label:'Bar / Pub (watch the match)',color:'var(--gold)',n:8},
+    {label:'Social Club',color:'var(--violet)',n:5},
+    {label:'Café / Bakery',color:'#8d6e63',n:6},
+    {label:'Market / Grocer',color:'var(--sky)',n:3},
+    {label:'Cultural Center',color:'var(--violet)',n:4},
+    {label:'Church / Community',color:'#b388ff',n:2},
+    {label:'Neighborhood',color:'var(--pitch)',n:6}
+  ];
+  var picked=[];
+  var input=document.getElementById('typeInput'),
+      menu=document.getElementById('typeMenu'),
+      tagsEl=document.getElementById('typeTags'),
+      countEl=document.getElementById('resultCount');
+
+  function render(q){
+    var ql=(q||'').toLowerCase();
+    var matches=TYPES.filter(function(t){
+      return t.label.toLowerCase().indexOf(ql)>-1 && picked.indexOf(t.label)<0;
+    });
+    if(!ql && document.activeElement!==input){menu.classList.remove('open');return;}
+    menu.innerHTML=matches.map(function(t){
+      return '<div class="ta-opt" data-l="'+t.label+'"><i style="background:'+t.color+'"></i>'+t.label+'<span class="ct">'+t.n+'</span></div>';
+    }).join('') || '<div class="ta-opt faint" style="cursor:default">no match — try “bar” or “club”</div>';
+    menu.classList.add('open');
+    menu.querySelectorAll('.ta-opt[data-l]').forEach(function(o){o.onclick=function(){add(o.dataset.l)}});
+  }
+  function add(label){
+    if(picked.indexOf(label)<0)picked.push(label);
+    input.value='';menu.classList.remove('open');paint();
+  }
+  function remove(label){picked=picked.filter(function(p){return p!==label});paint();}
+  function paint(){
+    tagsEl.innerHTML=picked.map(function(p){
+      var t=TYPES.find(function(x){return x.label===p});
+      return '<span class="ta-tag" data-l="'+p+'"><b>'+p.split(' ')[0]+'</b><span class="rm">✕</span></span>';
+    }).join('');
+    tagsEl.querySelectorAll('.ta-tag').forEach(function(tag){tag.onclick=function(){remove(tag.dataset.l)}});
+    // map count = sum of picked type counts (or all if none picked)
+    var total=picked.length? picked.reduce(function(s,p){var t=TYPES.find(function(x){return x.label===p});return s+(t?t.n:0)},0):7;
+    countEl.textContent=total;
+    var badge=document.querySelector('#s2 .cityMap .badge');
+    if(badge)badge.innerHTML='📍 New York / New Jersey · showing '+total+' spots';
+  }
+  if(input){
+    input.addEventListener('input',function(){render(input.value)});
+    input.addEventListener('focus',function(){render(input.value)});
+    input.addEventListener('keydown',function(e){
+      if(e.key==='Enter'){var first=menu.querySelector('.ta-opt[data-l]');if(first)add(first.dataset.l);}
+    });
+    document.addEventListener('click',function(e){if(!e.target.closest('.ta'))menu.classList.remove('open');});
+  }
 </script>
 </body>
 </html>
