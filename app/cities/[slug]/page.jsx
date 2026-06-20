@@ -43,6 +43,9 @@ export default function CityPage({ params }) {
           <h1 className={styles.title}>{city.name}</h1>
           <p className={styles.tagline}>{city.tagline}</p>
           <p className={`lead ${styles.blurb}`}>{city.blurb}</p>
+          <div className={styles.heroCtas}>
+            <Link href={`/map/${city.slug}/`} className="btn btn-primary">🗺️ View {city.name} on the map</Link>
+          </div>
         </div>
       </section>
 

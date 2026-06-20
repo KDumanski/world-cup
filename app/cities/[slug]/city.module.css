@@ -178,3 +178,5 @@
   color: var(--ink-soft);
 }
 .siblingLink:hover { color: var(--accent); opacity: 1; }
+
+.heroCtas { margin-top: var(--sp-3); display: flex; flex-wrap: wrap; gap: var(--sp-2); }

@@ -2,6 +2,9 @@ import Link from 'next/link';
 import { CITIES, COUNTRY_META, STATS } from '@/lib/cities';
 import CityCard from '@/components/CityCard';
 import SectionReveal from '@/components/SectionReveal';
+import Countdown from '@/components/Countdown';
+import FlagMarquee from '@/components/FlagMarquee';
+import CountUp from '@/components/CountUp';
 import styles from './page.module.css';
 
 const COUNTRY_ORDER = ['USA', 'MEX', 'CAN'];
@@ -16,6 +19,9 @@ export default function Home() {
       {/* ============================ HERO ============================ */}
       <section className={styles.hero}>
         <div className={styles.heroGlow} aria-hidden />
+        <div className={styles.pitch} aria-hidden>
+          <span className={styles.ball}>⚽</span>
+        </div>
         <div className={`container ${styles.heroInner}`}>
           <span className="kicker">USA · Canada · Mexico — Summer 2026</span>
           <h1 className={styles.heroTitle}>
@@ -23,21 +29,33 @@ export default function Home() {
             <span className={styles.heroAccent}>find a taste of home.</span>
           </h1>
           <p className={`lead ${styles.heroLead}`}>
-            48 nations. 16 host cities. One continent. This is the fan’s guide to eating,
-            drinking and feeling at home in every World Cup city — the Russian restaurants in
-            Mexico City, the Brazilian bakeries in New Jersey, the Korean BBQ blocks from the
-            stadium. Pick your city, find your people.
+            48 nations. 16 host cities. One continent. The fan’s guide to eating, drinking and
+            feeling at home in every World Cup city — Russian restaurants in Mexico City, Brazilian
+            bakeries in New Jersey, Korean BBQ blocks from the stadium. Pick your city, find your people.
           </p>
           <div className={styles.heroCtas}>
-            <Link href="/cities/" className="btn btn-primary">Explore all 16 cities</Link>
-            <Link href="/#how" className="btn btn-ghost">How it works</Link>
+            <Link href="/map/" className="btn btn-primary">🗺️ Open the live map</Link>
+            <Link href="/cities/" className="btn btn-ghost">Browse 16 cities</Link>
           </div>
+          <div className={styles.countdownRow}>
+            <Countdown />
+            <span className={styles.kickoffNote}>Opening match · Estadio Azteca, Mexico City</span>
+          </div>
+        </div>
 
+        <div className={styles.flagBand}>
+          <FlagMarquee />
+        </div>
+      </section>
+
+      {/* ============================ STAT STRIP ============================ */}
+      <section className={styles.statSection}>
+        <div className="container">
           <div className={styles.statStrip}>
-            <Stat n={STATS.cities} label="Host cities" />
-            <Stat n={STATS.countries} label="Countries" />
-            <Stat n="48" label="Nations on the pitch" />
-            <Stat n={`${STATS.spots}+`} label="Curated fan spots" />
+            <StatCount end={STATS.cities} label="Host cities" />
+            <StatCount end={STATS.countries} label="Countries" />
+            <StatCount end={48} label="Nations on the pitch" />
+            <StatCount end={STATS.spots} suffix="+" label="Curated fan spots" />
           </div>
         </div>
       </section>
@@ -67,6 +85,38 @@ export default function Home() {
               <p>Restaurants, bars, markets and cultural hubs — the real places where fans gather, watch the match and get a plate of something familiar.</p>
             </SectionReveal>
           </div>
+        </div>
+      </section>
+
+      {/* ============================ MAP SHOWCASE ============================ */}
+      <section className="section">
+        <div className="container">
+          <SectionReveal className={styles.mapShowcase}>
+            <div className={styles.mapShowcaseText}>
+              <span className="kicker">The live map</span>
+              <h2 className={styles.h2}>Every spot, on one interactive map.</h2>
+              <p className="lead">
+                Open the map, pick a country, filter by your nation and the kind of place — restaurant,
+                bar, social club — and the pins drop right where the fans gather. Tap a pin for hours,
+                which match it’s showing, and directions.
+              </p>
+              <ul className={styles.mapFeatures}>
+                <li>🌎 16 cities · 3 countries on one map</li>
+                <li>⌨️ Type-to-filter by place: “bar”, “social club”…</li>
+                <li>📺 See who’s showing the match, live</li>
+              </ul>
+              <Link href="/map/" className="btn btn-primary">🗺️ Launch the live map</Link>
+            </div>
+            <Link href="/map/" className={styles.mapShowcaseVisual} aria-label="Open the live map">
+              <div className={styles.mapGrid} aria-hidden />
+              <span className={`${styles.mp} ${styles.mp1}`}><b>🍽️</b></span>
+              <span className={`${styles.mp} ${styles.mp2}`}><b>🍺</b></span>
+              <span className={`${styles.mp} ${styles.mp3}`}><b>🎭</b></span>
+              <span className={`${styles.mp} ${styles.mp4}`}><b>🛒</b></span>
+              <span className={styles.mapShine} aria-hidden />
+              <span className={styles.mapOpen}>Open map →</span>
+            </Link>
+          </SectionReveal>
         </div>
       </section>
 
@@ -118,10 +168,10 @@ export default function Home() {
   );
 }
 
-function Stat({ n, label }) {
+function StatCount({ end, suffix = '', label }) {
   return (
     <div className={styles.stat}>
-      <span className={styles.statN}>{n}</span>
+      <CountUp end={end} suffix={suffix} className={styles.statN} />
       <span className={styles.statLabel}>{label}</span>
     </div>
   );
