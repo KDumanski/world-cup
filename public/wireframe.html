@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>World Cup 2026 — Interactive Map System Wireframe</title>
+<style>
+  /* ===== Wireframe design tokens (dark by default, matches the live site) ===== */
+  :root{
+    --pitch:#2fd07f; --gold:#f4c430; --sky:#4895ef; --coral:#e63946; --violet:#7c4dff;
+    --bg:#0b0f0d; --elev:#111714; --elev2:#16201b; --line:rgba(47,208,127,.16);
+    --line2:rgba(47,208,127,.34); --ink:#eef5f0; --soft:#b9c7bf; --faint:#88998f;
+    --r:14px; --r2:10px; --ease:cubic-bezier(.22,1,.36,1);
+    --sans:'Inter',system-ui,-apple-system,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{margin:0 0 .4em;letter-spacing:-.02em;line-height:1.1}
+  a{color:var(--pitch);text-decoration:none}
+  .wrap{max-width:1240px;margin:0 auto;padding:24px}
+  .kick{font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--pitch);margin-bottom:8px;display:flex;align-items:center;gap:.6em}
+  .kick::before{content:'';width:26px;height:2px;background:var(--pitch);border-radius:2px}
+  .muted{color:var(--soft)} .faint{color:var(--faint)}
+  .pill{display:inline-flex;align-items:center;gap:.4em;font-size:12px;font-weight:700;padding:.3em .8em;border-radius:999px;border:1px solid var(--line2);color:var(--soft);background:var(--elev)}
+
+  /* ===== Top frame bar (this is a wireframe, label it) ===== */
+  .frameBar{position:sticky;top:0;z-index:30;background:rgba(11,15,13,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:10px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .frameBar .dot{width:10px;height:10px;border-radius:50%;background:var(--gold)}
+  .frameBar b{font-size:14px} .frameBar .nav{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .frameBar .nav button{font:inherit;font-size:12px;font-weight:700;color:var(--soft);background:var(--elev);border:1px solid var(--line);border-radius:999px;padding:.45em 1em;cursor:pointer;transition:.2s var(--ease)}
+  .frameBar .nav button:hover,.frameBar .nav button.on{color:#06130c;background:var(--pitch);border-color:var(--pitch)}
+
+  .screen{display:none;animation:fade .3s var(--ease)}
+  .screen.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .secLabel{display:flex;align-items:center;gap:10px;margin:8px 0 18px}
+  .secLabel .n{width:28px;height:28px;border-radius:8px;background:var(--elev2);border:1px solid var(--line2);display:grid;place-items:center;font-weight:800;color:var(--pitch);font-size:13px}
+  .note{font-size:13px;color:var(--faint);border-left:2px solid var(--line2);padding:2px 0 2px 12px;margin:14px 0}
+
+  /* ===== generic boxes that read as 'wireframe' ===== */
+  .box{border:1px dashed var(--line2);border-radius:var(--r);background:var(--elev)}
+  .solid{border:1px solid var(--line);border-radius:var(--r);background:var(--elev2)}
+
+  /* ============ SCREEN 1: country selector ============ */
+  .map-usa{position:relative;height:460px;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);
+    background:
+      radial-gradient(120% 90% at 50% 120%, rgba(47,208,127,.10), transparent 60%),
+      repeating-linear-gradient(0deg,transparent 0 38px,rgba(255,255,255,.025) 38px 39px),
+      repeating-linear-gradient(90deg,transparent 0 38px,rgba(255,255,255,.025) 38px 39px),
+      var(--elev)}
+  .map-usa .mapttl{position:absolute;left:18px;top:14px;font-size:13px;color:var(--faint)}
+  .pin{position:absolute;transform:translate(-50%,-100%);cursor:pointer;text-align:center}
+  .pin .dot{width:16px;height:16px;border-radius:50% 50% 50% 0;transform:rotate(45deg);background:var(--pitch);box-shadow:0 0 0 4px rgba(47,208,127,.2);margin:0 auto}
+  .pin .lbl{font-size:11px;font-weight:700;margin-top:6px;white-space:nowrap;background:rgba(11,15,13,.8);padding:2px 6px;border-radius:6px;border:1px solid var(--line)}
+  .pin:hover .dot{background:var(--gold);box-shadow:0 0 0 6px rgba(244,196,48,.25)}
+  .pin.mex .dot{background:var(--coral)} .pin.can .dot{background:var(--sky)}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px}
+  .legend span{display:inline-flex;align-items:center;gap:.5em;font-size:12px;color:var(--soft)}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+  /* ============ SCREEN 2: city map + sidebar + detail ============ */
+  .cityGrid{display:grid;grid-template-columns:300px 1fr;gap:14px;height:600px}
+  @media(max-width:880px){.cityGrid{grid-template-columns:1fr;height:auto}}
+  .sidebar{display:flex;flex-direction:column;gap:14px;overflow:auto;padding-right:2px}
+  .panel{border:1px solid var(--line);border-radius:var(--r);background:var(--elev);padding:14px}
+  .panel h4{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+  .search{display:flex;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:999px;padding:.6em 1em;color:var(--faint);font-size:13px;background:var(--elev2)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:12px;font-weight:600;padding:.4em .8em;border-radius:999px;border:1px solid var(--line);background:var(--elev2);color:var(--soft);cursor:pointer;transition:.18s var(--ease);display:inline-flex;align-items:center;gap:.4em}
+  .chip:hover{border-color:var(--line2)}
+  .chip.on{background:var(--pitch);color:#06130c;border-color:var(--pitch)}
+  .toggle{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--soft);padding:.4em 0;cursor:pointer}
+  .sw{width:38px;height:22px;border-radius:999px;background:var(--elev2);border:1px solid var(--line2);position:relative}
+  .sw::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--faint);transition:.2s}
+  .toggle.on .sw{background:rgba(47,208,127,.3);border-color:var(--pitch)}
+  .toggle.on .sw::after{left:18px;background:var(--pitch)}
+  .catRow{display:flex;align-items:center;gap:.6em;font-size:13px;color:var(--soft);padding:.35em 0;cursor:pointer}
+  .catRow i{width:12px;height:12px;border-radius:3px}
+
+  .cityMap{position:relative;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);
+    background:
+      radial-gradient(90% 70% at 30% 20%, rgba(72,149,239,.10), transparent 60%),
+      repeating-linear-gradient(0deg,transparent 0 30px,rgba(255,255,255,.022) 30px 31px),
+      repeating-linear-gradient(90deg,transparent 0 30px,rgba(255,255,255,.022) 30px 31px),
+      var(--elev)}
+  .cityMap .badge{position:absolute;left:14px;top:12px;font-size:12px;color:var(--faint);background:rgba(11,15,13,.7);padding:4px 10px;border-radius:8px;border:1px solid var(--line)}
+  .mctrl{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:6px}
+  .mctrl button{width:32px;height:32px;border-radius:8px;border:1px solid var(--line2);background:rgba(11,15,13,.8);color:var(--ink);font-size:16px;cursor:pointer}
+  .mpin{position:absolute;transform:translate(-50%,-100%);cursor:pointer}
+  .mpin .d{width:20px;height:20px;border-radius:50% 50% 50% 0;transform:rotate(45deg);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+  .mpin .d span{transform:rotate(-45deg);font-size:10px}
+  .mpin.r .d{background:var(--coral)} .mpin.b .d{background:var(--gold);color:#06130c}
+  .mpin.c .d{background:var(--violet)} .mpin.m .d{background:var(--pitch)} .mpin.n .d{background:var(--sky)}
+  .mpin.live::before{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;border:2px solid var(--gold);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%{opacity:.8;transform:translate(-50%,-50%) scale(.6)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.2)}}
+
+  /* detail card popped from a pin */
+  .detail{position:absolute;right:14px;bottom:14px;width:300px;border-radius:var(--r);border:1px solid var(--line2);background:var(--elev2);padding:0;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+  .detail .hd{height:96px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.04) 0 10px,transparent 10px 20px),var(--elev);display:grid;place-items:center;color:var(--faint);font-size:12px;border-bottom:1px solid var(--line)}
+  .detail .bd{padding:14px}
+  .detail .row{display:flex;align-items:center;gap:.5em;font-size:12px;color:var(--soft);margin:.3em 0}
+  .detail .live{color:var(--gold);font-weight:700}
+  .detail .x{position:absolute;right:8px;top:8px;width:26px;height:26px;border-radius:50%;background:rgba(11,15,13,.8);border:1px solid var(--line);color:var(--ink);cursor:pointer;font-size:14px;line-height:1}
+
+  .countPill{position:absolute;left:14px;bottom:14px;font-size:12px;font-weight:700;color:var(--ink);background:rgba(11,15,13,.82);border:1px solid var(--line2);border-radius:999px;padding:.5em 1em}
+
+  /* ============ mobile flow strip ============ */
+  .phones{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:18px;margin-top:8px}
+  .phone{border:1px solid var(--line2);border-radius:22px;background:#000;padding:10px;height:420px;position:relative;overflow:hidden}
+  .phone .notch{width:90px;height:18px;background:#000;border:1px solid var(--line);border-top:none;border-radius:0 0 12px 12px;margin:0 auto 8px}
+  .phscreen{height:368px;border-radius:14px;overflow:hidden;background:var(--elev);border:1px solid var(--line);position:relative;font-size:11px}
+  .phlabel{text-align:center;font-size:12px;color:var(--faint);margin-top:8px}
+  .miniMap{height:150px;background:repeating-linear-gradient(0deg,transparent 0 16px,rgba(255,255,255,.03) 16px 17px),repeating-linear-gradient(90deg,transparent 0 16px,rgba(255,255,255,.03) 16px 17px),var(--elev2);position:relative;border-bottom:1px solid var(--line)}
+  .miniMap .mp{position:absolute;width:10px;height:10px;border-radius:50% 50% 50% 0;transform:rotate(45deg)}
+  .sheet{padding:10px}
+  .sheet .bar{height:4px;width:40px;background:var(--line2);border-radius:4px;margin:0 auto 10px}
+  .rowline{height:40px;border-radius:8px;background:var(--elev2);border:1px solid var(--line);margin-bottom:8px;display:flex;align-items:center;gap:8px;padding:0 8px}
+  .rowline .ic{width:22px;height:22px;border-radius:6px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .flowList{counter-reset:s;list-style:none;padding:0;margin:0}
+  .flowList li{counter-increment:s;position:relative;padding:10px 0 10px 40px;border-bottom:1px solid var(--line);font-size:14px;color:var(--soft)}
+  .flowList li::before{content:counter(s);position:absolute;left:0;top:9px;width:26px;height:26px;border-radius:8px;background:var(--elev2);border:1px solid var(--line2);color:var(--pitch);font-weight:800;display:grid;place-items:center;font-size:12px}
+  .flowList li b{color:var(--ink)}
+  .arch{display:flex;flex-direction:column;gap:10px}
+  .layer{border:1px solid var(--line);border-radius:var(--r2);padding:12px 14px;background:var(--elev)}
+  .layer h4{font-size:13px;margin-bottom:4px} .layer p{margin:0;font-size:12px;color:var(--faint)}
+  .layer.k{border-color:var(--line2);background:linear-gradient(180deg,rgba(47,208,127,.06),transparent)}
+</style>
+</head>
+<body>
+
+<div class="frameBar">
+  <span class="dot"></span><b>WIREFRAME</b>
+  <span class="faint" style="font-size:12px">World Cup 2026 — interactive map system (concept, not the live site)</span>
+  <div class="nav">
+    <button class="on" data-s="s1">1 · Country map</button>
+    <button data-s="s2">2 · City map + sidebar</button>
+    <button data-s="s3">3 · Mobile flow</button>
+    <button data-s="s4">4 · How it works</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- ===================== SCREEN 1 ===================== -->
+<section class="screen on" id="s1">
+  <div class="secLabel"><span class="n">1</span><div><div class="kick">Entry point</div><h2 style="font-size:26px">Pick a host city</h2></div></div>
+  <p class="muted" style="max-width:62ch">The landing map. All 16 host cities pinned across the three countries, colored by country. Click any pin → fly into that city’s map (Screen 2). A list view on the right mirrors the pins for quick scanning.</p>
+
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:14px;margin-top:14px">
+    <div class="map-usa">
+      <div class="mapttl">🗺️ North America — 16 host cities</div>
+      <!-- USA -->
+      <div class="pin" style="left:78%;top:46%"><div class="dot"></div><div class="lbl">NY / NJ</div></div>
+      <div class="pin" style="left:20%;top:60%"><div class="dot"></div><div class="lbl">Los Angeles</div></div>
+      <div class="pin" style="left:80%;top:74%"><div class="dot"></div><div class="lbl">Miami</div></div>
+      <div class="pin" style="left:50%;top:70%"><div class="dot"></div><div class="lbl">Dallas</div></div>
+      <div class="pin" style="left:68%;top:64%"><div class="dot"></div><div class="lbl">Atlanta</div></div>
+      <div class="pin" style="left:52%;top:78%"><div class="dot"></div><div class="lbl">Houston</div></div>
+      <div class="pin" style="left:54%;top:52%"><div class="dot"></div><div class="lbl">Kansas City</div></div>
+      <div class="pin" style="left:74%;top:42%"><div class="dot"></div><div class="lbl">Philadelphia</div></div>
+      <div class="pin" style="left:14%;top:48%"><div class="dot"></div><div class="lbl">SF Bay</div></div>
+      <div class="pin" style="left:18%;top:30%"><div class="dot"></div><div class="lbl">Seattle</div></div>
+      <div class="pin" style="left:80%;top:38%"><div class="dot"></div><div class="lbl">Boston</div></div>
+      <!-- Mexico -->
+      <div class="pin mex" style="left:40%;top:92%"><div class="dot"></div><div class="lbl">Mexico City</div></div>
+      <div class="pin mex" style="left:32%;top:88%"><div class="dot"></div><div class="lbl">Guadalajara</div></div>
+      <div class="pin mex" style="left:44%;top:82%"><div class="dot"></div><div class="lbl">Monterrey</div></div>
+      <!-- Canada -->
+      <div class="pin can" style="left:70%;top:26%"><div class="dot"></div><div class="lbl">Toronto</div></div>
+      <div class="pin can" style="left:16%;top:20%"><div class="dot"></div><div class="lbl">Vancouver</div></div>
+    </div>
+    <div class="solid" style="padding:14px;overflow:auto">
+      <h4 style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)">Host cities</h4>
+      <div id="cityList"></div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--pitch)"></i> United States (11)</span>
+    <span><i style="background:var(--coral)"></i> Mexico (3)</span>
+    <span><i style="background:var(--sky)"></i> Canada (2)</span>
+  </div>
+  <div class="note">Tech: a Mapbox GL map centered on North America; the 16 cities are GeoJSON points. Clicking a pin <code>flyTo()</code> the city and routes to Screen 2.</div>
+</section>
+
+<!-- ===================== SCREEN 2 ===================== -->
+<section class="screen" id="s2">
+  <div class="secLabel"><span class="n">2</span><div><div class="kick">The core screen</div><h2 style="font-size:26px">City map · filters · detail</h2></div></div>
+  <p class="muted" style="max-width:70ch">One city (e.g. <b>New York / NJ</b>). Left <b>sidebar</b> = filters. Center = <b>Mapbox</b> with category-colored pins. Click a pin → <b>detail card</b> with address, hours, the team’s fans it serves, and whether it’s <span style="color:var(--gold);font-weight:700">showing the match live</span>.</p>
+
+  <div class="cityGrid">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="panel">
+        <div class="search">🔍 Search a place or your country…</div>
+      </div>
+
+      <div class="panel">
+        <h4>Filter by nation / team</h4>
+        <div class="chips">
+          <span class="chip on">🇧🇷 Brazil</span>
+          <span class="chip">🇰🇷 Korea</span>
+          <span class="chip">🇲🇽 Mexico</span>
+          <span class="chip">🇮🇹 Italy</span>
+          <span class="chip">🇵🇹 Portugal</span>
+          <span class="chip">🇬🇭 Ghana</span>
+          <span class="chip faint">+ all 48</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h4>Show me</h4>
+        <div class="toggle on"><span>📺 Showing the match live</span><span class="sw"></span></div>
+        <div class="toggle on"><span>⭐ Big fan gathering spots</span><span class="sw"></span></div>
+        <div class="toggle"><span>🕐 Open right now</span><span class="sw"></span></div>
+      </div>
+
+      <div class="panel">
+        <h4>Category</h4>
+        <div class="catRow"><i style="background:var(--coral)"></i> Restaurants <span class="faint" style="margin-left:auto">12</span></div>
+        <div class="catRow"><i style="background:var(--gold)"></i> Bars / watch spots <span class="faint" style="margin-left:auto">8</span></div>
+        <div class="catRow"><i style="background:var(--violet)"></i> Cultural hubs <span class="faint" style="margin-left:auto">4</span></div>
+        <div class="catRow"><i style="background:var(--pitch)"></i> Neighborhoods <span class="faint" style="margin-left:auto">6</span></div>
+        <div class="catRow"><i style="background:var(--sky)"></i> Markets <span class="faint" style="margin-left:auto">3</span></div>
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div class="cityMap">
+      <div class="badge">📍 New York / New Jersey · showing 33 spots</div>
+      <div class="mctrl"><button>+</button><button>−</button><button>⤢</button></div>
+
+      <div class="mpin r live" style="left:30%;top:34%"><div class="d"><span>🍽️</span></div></div>
+      <div class="mpin b live" style="left:58%;top:30%"><div class="d"><span>🍺</span></div></div>
+      <div class="mpin c" style="left:44%;top:52%"><div class="d"><span>🎭</span></div></div>
+      <div class="mpin m" style="left:66%;top:60%"><div class="d"><span>🏙️</span></div></div>
+      <div class="mpin n" style="left:24%;top:66%"><div class="d"><span>🛒</span></div></div>
+      <div class="mpin r" style="left:52%;top:74%"><div class="d"><span>🍽️</span></div></div>
+      <div class="mpin b" style="left:74%;top:44%"><div class="d"><span>🍺</span></div></div>
+
+      <div class="countPill">🇧🇷 Brazil · 9 spots in NY/NJ</div>
+
+      <!-- detail card -->
+      <div class="detail">
+        <div class="hd">[ photo / street view ]
+          <button class="x">×</button>
+        </div>
+        <div class="bd">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <b style="font-size:15px">Casa Brasil — Ironbound</b>
+            <span class="pill" style="font-size:10px">🇧🇷 Brazil</span>
+          </div>
+          <div class="row">🍽️ Churrascaria · Restaurant</div>
+          <div class="row">📍 Ferry St, Newark NJ · 0.4 mi</div>
+          <div class="row live">📺 Showing BRA vs SRB · today 2:00 PM</div>
+          <div class="row">🕐 Open now · 11 AM – 11 PM</div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <span class="pill" style="background:var(--pitch);color:#06130c;border-color:var(--pitch)">Directions</span>
+            <span class="pill">Website</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">Pins pulse gold when a venue is <b>showing a live match</b>. Sidebar filters + map are two views of the same filtered dataset — toggling a nation chip or “showing the match” instantly repaints the pins and the detail list.</div>
+</section>
+
+<!-- ===================== SCREEN 3: mobile ===================== -->
+<section class="screen" id="s3">
+  <div class="secLabel"><span class="n">3</span><div><div class="kick">Mobile</div><h2 style="font-size:26px">Phone flow</h2></div></div>
+  <p class="muted" style="max-width:64ch">On phones the sidebar becomes a bottom sheet you drag up. Map stays full-bleed; filters are a horizontal chip strip; tapping a pin raises the detail sheet.</p>
+  <div class="phones">
+    <div>
+      <div class="phone"><div class="notch"></div>
+        <div class="phscreen">
+          <div style="padding:10px"><div style="font-weight:800;font-size:13px">⚽ Pick a city</div></div>
+          <div class="miniMap" style="height:300px">
+            <div class="mp" style="left:60%;top:40%;background:var(--pitch)"></div>
+            <div class="mp" style="left:30%;top:55%;background:var(--pitch)"></div>
+            <div class="mp" style="left:45%;top:80%;background:var(--coral)"></div>
+            <div class="mp" style="left:55%;top:25%;background:var(--sky)"></div>
+          </div>
+        </div>
+      </div>
+      <div class="phlabel">A · Country map</div>
+    </div>
+    <div>
+      <div class="phone"><div class="notch"></div>
+        <div class="phscreen">
+          <div class="miniMap">
+            <div class="mp" style="left:30%;top:30%;background:var(--coral)"></div>
+            <div class="mp" style="left:60%;top:45%;background:var(--gold)"></div>
+            <div class="mp" style="left:45%;top:70%;background:var(--violet)"></div>
+          </div>
+          <div style="padding:8px;display:flex;gap:6px;overflow:hidden">
+            <span class="chip on" style="font-size:10px">🇧🇷 Brazil</span>
+            <span class="chip" style="font-size:10px">🇰🇷 Korea</span>
+            <span class="chip" style="font-size:10px">📺 Live</span>
+          </div>
+          <div class="sheet">
+            <div class="bar"></div>
+            <div class="rowline"><span class="ic" style="background:var(--coral)"></span><span style="font-size:11px">Casa Brasil · 📺 live</span></div>
+            <div class="rowline"><span class="ic" style="background:var(--gold)"></span><span style="font-size:11px">Bar Brasília · 📺 live</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="phlabel">B · City map + chip filters</div>
+    </div>
+    <div>
+      <div class="phone"><div class="notch"></div>
+        <div class="phscreen">
+          <div class="miniMap" style="height:120px">
+            <div class="mp live" style="left:45%;top:45%;background:var(--coral)"></div>
+          </div>
+          <div class="sheet">
+            <div class="bar"></div>
+            <div style="font-weight:800;font-size:12px;margin-bottom:4px">Casa Brasil — Ironbound</div>
+            <div style="font-size:11px;color:var(--gold);font-weight:700;margin-bottom:6px">📺 Showing BRA vs SRB · 2 PM</div>
+            <div style="font-size:11px;color:var(--soft)">📍 Ferry St, Newark · 0.4 mi</div>
+            <div style="font-size:11px;color:var(--soft)">🕐 Open now · 11–11</div>
+            <div style="display:flex;gap:6px;margin-top:8px"><span class="chip on" style="font-size:10px">Directions</span><span class="chip" style="font-size:10px">Call</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="phlabel">C · Tap pin → detail sheet</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SCREEN 4: how it works ===================== -->
+<section class="screen" id="s4">
+  <div class="secLabel"><span class="n">4</span><div><div class="kick">System</div><h2 style="font-size:26px">How the whole thing works</h2></div></div>
+  <div class="grid2">
+    <div>
+      <h3 style="font-size:16px">User flow</h3>
+      <ol class="flowList">
+        <li><b>Land on the country map</b> — 16 pins across USA/Canada/Mexico.</li>
+        <li><b>Click a city</b> — map flies in; URL becomes <code>/city/new-york</code>.</li>
+        <li><b>Filter</b> — pick your nation/team, or “showing the match”, “open now”.</li>
+        <li><b>Scan pins</b> — colored by category, pulsing if showing a live game.</li>
+        <li><b>Tap a spot</b> — detail card: address, hours, which match it’s showing, directions.</li>
+        <li><b>Go</b> — directions hand off to Google/Apple Maps.</li>
+      </ol>
+      <h3 style="font-size:16px;margin-top:18px">Filters (sidebar)</h3>
+      <div class="chips">
+        <span class="chip">By nation / team</span>
+        <span class="chip">By category</span>
+        <span class="chip">📺 Showing the match</span>
+        <span class="chip">🕐 Open now</span>
+        <span class="chip">⭐ Big gathering spots</span>
+        <span class="chip">Distance to stadium</span>
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size:16px">Data &amp; tech layers</h3>
+      <div class="arch">
+        <div class="layer k"><h4>🗺️ Map — Mapbox GL JS</h4><p>Dark style. GeoJSON layer of spots; cluster at country zoom, individual pins at city zoom; <code>flyTo()</code> on city select.</p></div>
+        <div class="layer"><h4>📊 Data — cities.js (already built)</h4><p>Each spot gets coords, category, nation, <b>hours</b>, and a <b>matchSchedule</b> (which game it’s showing &amp; when).</p></div>
+        <div class="layer"><h4>🎛️ Filter state</h4><p>One filtered list drives both the sidebar list and the map pins — toggling a chip repaints instantly (client-side, no reload).</p></div>
+        <div class="layer"><h4>📺 “Showing the match”</h4><p>Per-venue field tied to the official fixture list. A venue pulses gold when one of its broadcasts is live now.</p></div>
+        <div class="layer"><h4>🌍 Thin-diaspora teams</h4><p>Some nations have few US spots — we surface the <b>nearest big gathering</b> + official fan zones, and say so honestly rather than show an empty map.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="note">This wireframe is the plan. Next step would be wiring a real Mapbox map to the existing <code>cities.js</code> data, adding <code>lat/lng</code>, <code>hours</code>, and <code>showingMatch</code> to each spot.</div>
+</section>
+
+</div>
+
+<script>
+  // city list mirrors the pins
+  var cities=[["New York / NJ","us"],["Los Angeles","us"],["Miami","us"],["Dallas","us"],["Atlanta","us"],["Houston","us"],["Kansas City","us"],["Philadelphia","us"],["SF Bay Area","us"],["Seattle","us"],["Boston","us"],["Mexico City","mx"],["Guadalajara","mx"],["Monterrey","mx"],["Toronto","ca"],["Vancouver","ca"]];
+  var col={us:'var(--pitch)',mx:'var(--coral)',ca:'var(--sky)'};
+  document.getElementById('cityList').innerHTML=cities.map(function(c){
+    return '<div style="display:flex;align-items:center;gap:.6em;padding:.45em 0;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer" onmouseover="this.style.color=\'#fff\'" onmouseout="this.style.color=\'var(--soft)\'"><i style="width:9px;height:9px;border-radius:50%;background:'+col[c[1]]+'"></i><span style="color:var(--soft)">'+c[0]+'</span><span style="margin-left:auto;color:var(--faint)">→</span></div>';
+  }).join('');
+
+  // screen switching
+  var btns=document.querySelectorAll('.frameBar .nav button');
+  btns.forEach(function(b){b.onclick=function(){
+    btns.forEach(function(x){x.classList.remove('on')});b.classList.add('on');
+    document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on')});
+    document.getElementById(b.dataset.s).classList.add('on');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }});
+
+  // clicking a city pin jumps to screen 2
+  document.querySelectorAll('#s1 .pin').forEach(function(p){p.onclick=function(){
+    btns.forEach(function(x){x.classList.remove('on')});btns[1].classList.add('on');
+    document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on')});
+    document.getElementById('s2').classList.add('on');window.scrollTo({top:0,behavior:'smooth'});
+  }});
+  // sidebar chips + toggles are clickable (demo)
+  document.querySelectorAll('#s2 .chip').forEach(function(c){c.onclick=function(){c.classList.toggle('on')}});
+  document.querySelectorAll('#s2 .toggle').forEach(function(t){t.onclick=function(){t.classList.toggle('on')}});
+  document.querySelector('#s2 .detail .x').onclick=function(){this.closest('.detail').style.display='none'};
+</script>
+</body>
+</html>
