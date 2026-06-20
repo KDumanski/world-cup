@@ -28,8 +28,8 @@ export default function Nav() {
 
         <nav className={`${styles.links} ${open ? styles.linksOpen : ''}`} aria-label="Primary">
           <Link href="/" onClick={() => setOpen(false)}>Home</Link>
+          <Link href="/map/" onClick={() => setOpen(false)}>Live Map</Link>
           <Link href="/cities/" onClick={() => setOpen(false)}>Host Cities</Link>
-          <Link href="/#how" onClick={() => setOpen(false)}>How it works</Link>
           <Link href="/about/" onClick={() => setOpen(false)}>About</Link>
         </nav>
 
