@@ -11,26 +11,32 @@ function loadLeaflet() {
   if (window.L) return Promise.resolve(window.L);
   if (loadPromise) return loadPromise;
 
-  loadPromise = new Promise((resolve, reject) => {
-    // CSS
-    if (!document.querySelector('link[data-leaflet]')) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
-      link.crossOrigin = '';
-      link.setAttribute('data-leaflet', '');
-      document.head.appendChild(link);
-    }
-    // JS
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
-    script.crossOrigin = '';
-    script.onload = () => resolve(window.L);
-    script.onerror = reject;
-    document.body.appendChild(script);
+  const addCss = (href) => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    link.setAttribute('data-leaflet', '');
+    document.head.appendChild(link);
+  };
+  const addScript = (src) => new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = res;
+    s.onerror = rej;
+    document.body.appendChild(s);
   });
+
+  loadPromise = (async () => {
+    if (!document.querySelector('link[data-leaflet]')) {
+      addCss('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
+      // markercluster styles (base + default cluster theme)
+      addCss('https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css');
+    }
+    await addScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');
+    // clustering plugin — depends on L being loaded first
+    await addScript('https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js');
+    return window.L;
+  })();
   return loadPromise;
 }
 

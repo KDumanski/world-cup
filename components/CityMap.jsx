@@ -2,8 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useLeaflet from './useLeaflet';
 import ThemeToggle from './ThemeToggle';
-import { citySpots, cityTypes, cityNations } from '@/lib/mapData';
-import { COUNTRY_META } from '@/lib/cities';
+import { allSpots, allNations, allTypes } from '@/lib/mapData';
 import styles from './CityMap.module.css';
 
 // CARTO dark basemap — free, no token, fine for a static GitHub Pages site.
@@ -11,22 +10,18 @@ const TILE = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 const TILE_ATTR =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
-const COUNTRY_ORDER = ['USA', 'MEX', 'CAN'];
-
-// The single-page app: the map IS the site. `cities` is the full list; the
-// current city is internal state, switched in-place via the sidebar dropdown
-// (the map flies to it — no navigation, no reload).
+// Map-first single page: you START zoomed out over the whole continent. Every
+// spot across all 16 host cities is clustered; zoom in and clusters break into
+// individual place pins. The sidebar filters apply across the whole map.
 export default function CityMap({ cities }) {
   const L = useLeaflet();
   const mapEl = useRef(null);
   const mapRef = useRef(null);
-  const layerRef = useRef(null);
+  const clusterRef = useRef(null);
 
-  const [city, setCity] = useState(cities[0]);
-
-  const allSpots = useMemo(() => citySpots(city), [city]);
-  const types = useMemo(() => cityTypes(city), [city]);
-  const nations = useMemo(() => cityNations(city), [city]);
+  const spots = useMemo(() => allSpots(cities), [cities]);
+  const nations = useMemo(() => allNations(cities), [cities]);
+  const types = useMemo(() => allTypes(cities), [cities]);
 
   // ---- filter state (the funnel) ----
   const [nation, setNation] = useState(null);
@@ -37,82 +32,72 @@ export default function CityMap({ cities }) {
   const [selected, setSelected] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Reset filters + selection when the city changes.
-  const switchCity = (slug) => {
-    const next = cities.find((c) => c.slug === slug);
-    if (!next) return;
-    setCity(next);
-    setNation(null);
-    setPickedTypes([]);
-    setTypeQuery('');
-    setSelected(null);
-    setShowingOnly(false);
-    setOpenOnly(false);
-  };
-
-  // ---- apply filters ----
   const filtered = useMemo(() => {
-    return allSpots.filter((s) => {
+    return spots.filter((s) => {
       if (nation && s.nation !== nation) return false;
       if (pickedTypes.length && !pickedTypes.includes(s.type)) return false;
       if (showingOnly && !s.showingMatch) return false;
       if (openOnly && !s.openNow) return false;
       return true;
     });
-  }, [allSpots, nation, pickedTypes, showingOnly, openOnly]);
+  }, [spots, nation, pickedTypes, showingOnly, openOnly]);
 
-  // typeahead suggestions
   const suggestions = useMemo(() => {
     const q = typeQuery.trim().toLowerCase();
     return types.filter((t) => !pickedTypes.includes(t.type) &&
       (!q || t.type.toLowerCase().includes(q) ||
-        allSpots.some((s) => s.type === t.type && s.keywords.some((k) => k.includes(q)))));
-  }, [types, typeQuery, pickedTypes, allSpots]);
+        (t.keywords || []).some((k) => k.includes(q))));
+  }, [types, typeQuery, pickedTypes]);
 
-  // ---- init map once Leaflet is ready ----
+  // ---- init map once Leaflet (+ cluster plugin) is ready ----
   useEffect(() => {
     if (!L || !mapEl.current || mapRef.current) return;
-    const map = L.map(mapEl.current, { zoomControl: true, attributionControl: true })
-      .setView([city.lat, city.lng], 12);
+    const map = L.map(mapEl.current, { zoomControl: true, worldCopyJump: true })
+      .setView([39.5, -98.5], 4); // start zoomed out over North America
     L.tileLayer(TILE, { attribution: TILE_ATTR, maxZoom: 19, subdomains: 'abcd' }).addTo(map);
-    layerRef.current = L.layerGroup().addTo(map);
+
+    // Cluster group with a custom dark icon matching the theme.
+    const cluster = L.markerClusterGroup({
+      maxClusterRadius: 55,
+      showCoverageOnHover: false,
+      spiderfyOnMaxZoom: true,
+      iconCreateFunction: (c) => {
+        const n = c.getChildCount();
+        const size = n < 10 ? 38 : n < 50 ? 46 : 54;
+        return L.divIcon({
+          html: `<div class="wc-cluster"><span>${n}</span></div>`,
+          className: '',
+          iconSize: [size, size],
+        });
+      },
+    });
+    map.addLayer(cluster);
+    clusterRef.current = cluster;
     mapRef.current = map;
-    return () => { map.remove(); mapRef.current = null; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { map.remove(); mapRef.current = null; clusterRef.current = null; };
   }, [L]);
 
-  // ---- fly to the city whenever it changes ----
+  // ---- repaint clustered pins whenever the filtered set changes ----
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    map.flyTo([city.lat, city.lng], 12, { duration: 1.1 });
-  }, [city]);
-
-  // ---- repaint pins whenever the filtered set changes ----
-  useEffect(() => {
-    const L2 = L, map = mapRef.current, layer = layerRef.current;
-    if (!L2 || !map || !layer) return;
-    layer.clearLayers();
-
-    filtered.forEach((s) => {
+    const L2 = L, cluster = clusterRef.current;
+    if (!L2 || !cluster) return;
+    cluster.clearLayers();
+    const markers = filtered.map((s) => {
       const live = !!s.showingMatch;
       const html = `<div class="wc-pin-wrap ${live ? 'wc-pin-live' : ''}">
         <div class="wc-pin" style="background:${s.color}"><span>${glyph(s.category)}</span></div>
       </div>`;
       const icon = L2.divIcon({ html, className: '', iconSize: [26, 26], iconAnchor: [13, 26] });
-      const m = L2.marker([s.lat, s.lng], { icon, title: s.name });
+      const m = L2.marker([s.lat, s.lng], { icon, title: `${s.name} · ${s.cityName}` });
       m.on('click', () => setSelected(s));
-      layer.addLayer(m);
+      return m;
     });
-
-    if (filtered.length) {
-      const b = L2.latLngBounds(filtered.map((s) => [s.lat, s.lng]));
-      map.fitBounds(b.pad(0.25), { animate: true, maxZoom: 14 });
-    }
+    cluster.addLayers(markers);
   }, [filtered, L]);
 
   const addType = (t) => { setPickedTypes((p) => p.includes(t) ? p : [...p, t]); setTypeQuery(''); setMenuOpen(false); };
   const removeType = (t) => setPickedTypes((p) => p.filter((x) => x !== t));
+  const resetAll = () => { setNation(null); setPickedTypes([]); setTypeQuery(''); setShowingOnly(false); setOpenOnly(false); setSelected(null); };
 
   return (
     <div className={styles.shell}>
@@ -129,38 +114,28 @@ export default function CityMap({ cities }) {
           <ThemeToggle />
         </header>
 
-        {/* STEP 1 — country + city (the dropdown switches the whole map) */}
-        <section className={styles.panel}>
-          <h4><span className={styles.stepN}>1</span> Pick a host city</h4>
-          <select className={styles.citySelect} value={city.slug} onChange={(e) => switchCity(e.target.value)}>
-            {COUNTRY_ORDER.map((code) => (
-              <optgroup key={code} label={`${COUNTRY_META[code].flag} ${COUNTRY_META[code].label}`}>
-                {cities.filter((c) => c.country === code).map((c) => (
-                  <option key={c.slug} value={c.slug}>{c.name}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <div className={styles.venueLine}>🏟️ {city.venueName} · {city.country && COUNTRY_META[city.country].flag} {city.region}</div>
-        </section>
+        <p className={styles.intro}>
+          Pan and zoom the map — spots cluster when you’re zoomed out and split into individual
+          places as you zoom into a city. Filter below to narrow what shows.
+        </p>
 
-        {/* STEP 2 — nation / team */}
+        {/* nation / team */}
         <section className={styles.panel}>
-          <h4><span className={styles.stepN}>2</span> Filter by nation / team</h4>
+          <h4>Filter by nation / team</h4>
           <div className={styles.chips}>
             <button className={`${styles.chip} ${!nation ? styles.chipOn : ''}`} onClick={() => setNation(null)}>All</button>
             {nations.map((n) => (
               <button key={n.nation} className={`${styles.chip} ${nation === n.nation ? styles.chipOn : ''}`}
                 onClick={() => setNation(nation === n.nation ? null : n.nation)}>
-                {n.flag} {n.nation}
+                {n.flag} {n.nation} <span className={styles.chipCt}>{n.count}</span>
               </button>
             ))}
           </div>
         </section>
 
-        {/* STEP 3 — typeahead "what kind of place?" */}
+        {/* typeahead "what kind of place?" */}
         <section className={styles.panel}>
-          <h4><span className={styles.stepN}>3</span> What kind of place?</h4>
+          <h4>What kind of place?</h4>
           <div className={styles.ta}>
             <div className={styles.taBox}>
               <span aria-hidden>⌨️</span>
@@ -193,9 +168,9 @@ export default function CityMap({ cities }) {
           </div>
         </section>
 
-        {/* STEP 4 — toggles */}
+        {/* toggles */}
         <section className={styles.panel}>
-          <h4><span className={styles.stepN}>4</span> Show me</h4>
+          <h4>Show me</h4>
           <button className={`${styles.toggle} ${showingOnly ? styles.toggleOn : ''}`} onClick={() => setShowingOnly((v) => !v)}>
             <span>📺 Showing the match live</span><span className={styles.sw} />
           </button>
@@ -204,7 +179,12 @@ export default function CityMap({ cities }) {
           </button>
         </section>
 
-        <div className={styles.resultLine}>↓ <b>{filtered.length}</b> places on the map →</div>
+        <div className={styles.resultLine}>
+          <span>📍 <b>{filtered.length}</b> places shown</span>
+          {(nation || pickedTypes.length || showingOnly || openOnly) && (
+            <button className={styles.reset} onClick={resetAll}>Reset</button>
+          )}
+        </div>
         <p className={styles.disclaimer}>Spots are a curated guide; locations &amp; hours are approximate. Independent fan project — not affiliated with FIFA.</p>
       </aside>
 
@@ -212,7 +192,7 @@ export default function CityMap({ cities }) {
       <div className={styles.mapCol}>
         {!L && <div className={styles.loading}>Loading map…</div>}
         <div ref={mapEl} className={styles.map} />
-        <div className={styles.badge}>📍 {city.name} · showing {filtered.length} spots</div>
+        <div className={styles.badge}>🌎 16 host cities · {filtered.length} spots · zoom in to explore</div>
 
         {selected && (
           <div className={styles.detail}>
@@ -226,7 +206,7 @@ export default function CityMap({ cities }) {
                 <span className={styles.detailNation}>{selected.flag} {selected.nation}</span>
               </div>
               <div className={styles.row} style={{ color: selected.color }}>● {selected.type}</div>
-              <div className={styles.row}>📍 {selected.area}</div>
+              <div className={styles.row}>📍 {selected.area} · {selected.cityName}</div>
               {selected.showingMatch && (
                 <div className={`${styles.row} ${styles.live}`}>📺 Showing {selected.showingMatch.label} · {selected.showingMatch.time}</div>
               )}
