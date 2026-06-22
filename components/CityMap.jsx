@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
 import useLeaflet from './useLeaflet';
+import ThemeToggle from './ThemeToggle';
 import { citySpots, cityTypes, cityNations } from '@/lib/mapData';
 import { COUNTRY_META } from '@/lib/cities';
 import styles from './CityMap.module.css';
@@ -11,24 +11,44 @@ const TILE = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 const TILE_ATTR =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
-export default function CityMap({ city, allCities }) {
+const COUNTRY_ORDER = ['USA', 'MEX', 'CAN'];
+
+// The single-page app: the map IS the site. `cities` is the full list; the
+// current city is internal state, switched in-place via the sidebar dropdown
+// (the map flies to it — no navigation, no reload).
+export default function CityMap({ cities }) {
   const L = useLeaflet();
   const mapEl = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
+
+  const [city, setCity] = useState(cities[0]);
 
   const allSpots = useMemo(() => citySpots(city), [city]);
   const types = useMemo(() => cityTypes(city), [city]);
   const nations = useMemo(() => cityNations(city), [city]);
 
   // ---- filter state (the funnel) ----
-  const [nation, setNation] = useState(null);        // null = all nations
+  const [nation, setNation] = useState(null);
   const [typeQuery, setTypeQuery] = useState('');
-  const [pickedTypes, setPickedTypes] = useState([]); // [] = all types
+  const [pickedTypes, setPickedTypes] = useState([]);
   const [showingOnly, setShowingOnly] = useState(false);
   const [openOnly, setOpenOnly] = useState(false);
   const [selected, setSelected] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Reset filters + selection when the city changes.
+  const switchCity = (slug) => {
+    const next = cities.find((c) => c.slug === slug);
+    if (!next) return;
+    setCity(next);
+    setNation(null);
+    setPickedTypes([]);
+    setTypeQuery('');
+    setSelected(null);
+    setShowingOnly(false);
+    setOpenOnly(false);
+  };
 
   // ---- apply filters ----
   const filtered = useMemo(() => {
@@ -58,7 +78,15 @@ export default function CityMap({ city, allCities }) {
     layerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
     return () => { map.remove(); mapRef.current = null; };
-  }, [L, city.lat, city.lng]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [L]);
+
+  // ---- fly to the city whenever it changes ----
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.flyTo([city.lat, city.lng], 12, { duration: 1.1 });
+  }, [city]);
 
   // ---- repaint pins whenever the filtered set changes ----
   useEffect(() => {
@@ -68,8 +96,6 @@ export default function CityMap({ city, allCities }) {
 
     filtered.forEach((s) => {
       const live = !!s.showingMatch;
-      // Global (non-module) class names — Leaflet injects this HTML raw, so the
-      // classes must match the :global() rules in CityMap.module.css.
       const html = `<div class="wc-pin-wrap ${live ? 'wc-pin-live' : ''}">
         <div class="wc-pin" style="background:${s.color}"><span>${glyph(s.category)}</span></div>
       </div>`;
@@ -79,37 +105,43 @@ export default function CityMap({ city, allCities }) {
       layer.addLayer(m);
     });
 
-    // fit to pins (only when there are some)
     if (filtered.length) {
       const b = L2.latLngBounds(filtered.map((s) => [s.lat, s.lng]));
       map.fitBounds(b.pad(0.25), { animate: true, maxZoom: 14 });
     }
   }, [filtered, L]);
 
-  const meta = COUNTRY_META[city.country];
   const addType = (t) => { setPickedTypes((p) => p.includes(t) ? p : [...p, t]); setTypeQuery(''); setMenuOpen(false); };
   const removeType = (t) => setPickedTypes((p) => p.filter((x) => x !== t));
 
   return (
     <div className={styles.shell}>
-      {/* ---------------- SIDEBAR: the filter funnel ---------------- */}
+      {/* ---------------- SIDEBAR: brand + filter funnel ---------------- */}
       <aside className={styles.sidebar}>
-        <Link href="/map/" className={styles.back}>← All host cities</Link>
+        <header className={styles.brandRow}>
+          <span className={styles.brand}>
+            <span aria-hidden>⚽</span>
+            <span className={styles.brandText}>
+              <strong>World Cup 2026</strong>
+              <span className={styles.brandSub}>Fan Map · a taste of home</span>
+            </span>
+          </span>
+          <ThemeToggle />
+        </header>
 
-        {/* STEP 1 — country + city */}
+        {/* STEP 1 — country + city (the dropdown switches the whole map) */}
         <section className={styles.panel}>
-          <h4><span className={styles.stepN}>1</span> Country</h4>
-          <div className={styles.segmented}>
-            {['USA', 'CAN', 'MEX'].map((code) => (
-              <span key={code} className={`${styles.seg} ${city.country === code ? styles.segOn : ''}`}>
-                {COUNTRY_META[code].flag} {code}
-              </span>
+          <h4><span className={styles.stepN}>1</span> Pick a host city</h4>
+          <select className={styles.citySelect} value={city.slug} onChange={(e) => switchCity(e.target.value)}>
+            {COUNTRY_ORDER.map((code) => (
+              <optgroup key={code} label={`${COUNTRY_META[code].flag} ${COUNTRY_META[code].label}`}>
+                {cities.filter((c) => c.country === code).map((c) => (
+                  <option key={c.slug} value={c.slug}>{c.name}</option>
+                ))}
+              </optgroup>
             ))}
-          </div>
-          <div className={styles.cityPick}>
-            <span className={styles.faint}>City:</span> <b>{city.name}</b>
-            <CitySwitcher allCities={allCities} current={city.slug} />
-          </div>
+          </select>
+          <div className={styles.venueLine}>🏟️ {city.venueName} · {city.country && COUNTRY_META[city.country].flag} {city.region}</div>
         </section>
 
         {/* STEP 2 — nation / team */}
@@ -173,6 +205,7 @@ export default function CityMap({ city, allCities }) {
         </section>
 
         <div className={styles.resultLine}>↓ <b>{filtered.length}</b> places on the map →</div>
+        <p className={styles.disclaimer}>Spots are a curated guide; locations &amp; hours are approximate. Independent fan project — not affiliated with FIFA.</p>
       </aside>
 
       {/* ---------------- MAP ---------------- */}
@@ -209,16 +242,6 @@ export default function CityMap({ city, allCities }) {
         )}
       </div>
     </div>
-  );
-}
-
-// inline city dropdown
-function CitySwitcher({ allCities, current }) {
-  return (
-    <select className={styles.citySelect} defaultValue={current}
-      onChange={(e) => { window.location.href = `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/map/${e.target.value}/`; }}>
-      {allCities.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
-    </select>
   );
 }
 

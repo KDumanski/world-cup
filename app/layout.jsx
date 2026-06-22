@@ -1,7 +1,5 @@
 import { Inter, Bricolage_Grotesque } from 'next/font/google';
 import './globals.css';
-import Nav from '@/components/Nav';
-import Footer from '@/components/Footer';
 import ThemeScript from '@/components/ThemeScript';
 
 const inter = Inter({
@@ -51,10 +49,7 @@ export default function RootLayout({ children }) {
         <ThemeScript />
       </head>
       <body>
-        <a href="#main" className="sr-only">Skip to content</a>
-        <Nav />
         <main id="main">{children}</main>
-        <Footer />
       </body>
     </html>
   );
